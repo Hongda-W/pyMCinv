@@ -1,0 +1,61 @@
+# write mod file and dispersion file for MC inversion
+import modparam
+import numpy as np
+from scipy.interpolate import interp1d
+import sys
+sys.path.append('/work3/wang/code_bkup/AgeJdF')
+import Comp_Age_Tomo
+
+if len(sys.argv) != 2:
+    raise ValueError("Usage: python write_mod.py ind")
+
+ind = int(sys.argv[1])
+outname = "JdF_Profile/water_S%g.mod"%(ind)
+Ye_arr = np.linspace(0.5,3.5,7)
+Ye_name = "2.0_result_model.f2"
+vel_sed0 = 0.1 # vs on the top of sediment layer
+sed_a = 0.02 # eq 5 in Ruan el al 2014
+sed_b = 1.27
+sed_c = 0.48
+crust_thk = 7.
+outdisp = "JdF_Profile/S%g_disp.txt"%(ind)
+h5file = '/work3/wang/code_bkup/AgeJdF/Age_dset_everysec.h5'
+
+if __name__ == "__main__":
+    dset = Comp_Age_Tomo.CompSurfVel(h5file)
+    pers = np.linspace(6.,30.,25)
+    dispfile = open(outdisp,'w')
+    for period in pers:
+        dispfile.write("{} {} {} \n".format(period, dset['3_trajs']['%g_sec'%(period)]['vels_N'].value[ind-1], 0.08))
+    dispfile.close()
+    age = dset['3_trajs']['%g_sec'%(6.)]['ages_S'].value[ind-1]
+    water_dep = dset['3_trajs']['%g_sec'%(6.)]['deps_S'].value[ind-1] / -1.e3
+    sed_thk = dset['3_trajs']['%g_sec'%(6.)]['seds_S'].value[ind-1] / 1.e3
+    
+    Ye_name = "%.1f_result_model"%(Ye_arr[np.argmin(np.abs(Ye_arr - age))])
+    vel_sed1 = (sed_a*sed_thk**2+sed_b*sed_thk+sed_c*vel_sed0)/(sed_thk+sed_c)# vs at bottom of sediment layer
+    Ye_file = "Ye_age_mod/"+Ye_name
+    outfile = open(outname,'w')
+    outfile.write("{}\n".format(age))
+    outfile.write("0 5 {} 1 1.475\n".format(water_dep))
+    outfile.write("1 4 {} 2 {} {} 2.\n".format(sed_thk,vel_sed0,vel_sed1))
+    outfile.write("2 2 {} 4 3.24617 3.3625 3.8837 3.94404 1.76\n".format(crust_thk))
+    mant_thk = 100 - crust_thk - sed_thk - water_dep
+    with open(Ye_file) as myfile:
+        _,_,Ye_thk,_,cvel1,cvel2,cvel3,cvel4,cvel5,_= list(myfile)[-1].strip().split()
+    Ye_thk = float(Ye_thk)
+    hArr = np.zeros(50)
+    hArr_Ye = np.zeros(50)
+    hArr[:50] = mant_thk / 50.
+    hArr_Ye[:50] = Ye_thk / 50.
+    deps = hArr.cumsum()
+    deps_Ye = hArr_Ye.cumsum()
+    nbasis = modparam.bspl_basis(5,4,0,mant_thk,2,50)
+    nbasis_Ye = modparam.bspl_basis(5,4,0,Ye_thk,2,50)
+    cvel_Ye = np.array([float(cvel1), float(cvel2), float(cvel3), float(cvel4), float(cvel5)])
+    vs_Ye = np.dot(nbasis_Ye[:5,:50].T, cvel_Ye)
+    f = interp1d(deps_Ye,vs_Ye,kind='linear',bounds_error=False, fill_value=(cvel_Ye[0],cvel_Ye[-1]))
+    vs_intp = f(deps)
+    cvel = np.linalg.lstsq(nbasis[:5,:50].T,vs_intp)[0]
+    outfile.write("3 2 {} 5 {} {} {} {} {} 1.76".format(mant_thk, cvel[0],cvel[1],cvel[2],cvel[3],cvel[4]))
+    outfile.close()

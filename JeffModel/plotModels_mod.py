@@ -1,0 +1,27 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+indata1 = np.loadtxt("177.6_-38.4_Model_mod.txt")
+indata1_2 = np.loadtxt("/work3/wang/code_bkup/pyMCinv/Eberhart-PhillipsModel/177.6_-38.4_Model_mod.txt")
+indata2 = np.loadtxt("178.0_-38.8_Model_mod.txt")
+indata2_2 = np.loadtxt("/work3/wang/code_bkup/pyMCinv/Eberhart-PhillipsModel/178.0_-38.8_Model_mod.txt")
+indata3 = np.loadtxt("178.6_-38.8_Model_mod.txt")
+indata3_2 = np.loadtxt("/work3/wang/code_bkup/pyMCinv/Eberhart-PhillipsModel/178.6_-38.8_Model_mod.txt")
+
+plt.figure(figsize=(8,12))
+plt.plot(indata1[:,1], indata1[:,0], color='purple', lw=4)
+plt.plot(indata1_2[:,1], indata1_2[:,0], '--', color='purple', lw=4)
+plt.plot(indata2[:,1], indata2[:,0], color='brown', lw=4)
+plt.plot(indata2_2[:,1], indata2_2[:,0], '--', color='brown', lw=4)
+plt.plot(indata3[:,1], indata3[:,0], color='red', lw=4)
+plt.plot(indata3_2[:,1], indata3_2[:,0], '--', color='red', lw=4)
+plt.grid(True)
+plt.xlabel('Velocity (km/s)', fontsize=20)
+plt.ylabel('Depth (km)', fontsize=20)
+plt.xlim(0., 5.2)
+plt.ylim(0, 60)
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+plt.title("Shear velocity profiles", fontsize=28)
+plt.gca().invert_yaxis()
+plt.show()
