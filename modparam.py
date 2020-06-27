@@ -1,4 +1,4 @@
-import modparam_lili as modparam_kind
+import modparam_HOBITSS as modparam_kind
 #import modparam_temp as modparam_kind
 import sys
 import re
